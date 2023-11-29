@@ -1,5 +1,8 @@
 # Colosseum Survival!
 
+Main repo: https://github.com/dmeger/Project-COMP424-2023-Fall
+
+
 **Project Description & Template** : https://www.overleaf.com/read/vnygbjryrxrt#7b70cb
 
 <p align="center">
