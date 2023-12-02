@@ -6,6 +6,8 @@ import numpy as np
 from copy import deepcopy
 import time
 
+from queue import Queue
+
 
 
 """
@@ -16,6 +18,8 @@ g(n) -> self.num_steps_taken
 h(n) is defined below
 
 game state is a 3-tuple: chess_board, my_pos, adv_pos
+
+BFS
 
 """
 
@@ -42,6 +46,20 @@ def g(student_agent):
 def f(student_agent, chess_board, my_pos, adv_pos):
     return g(student_agent) + h(student_agent, chess_board, my_pos, adv_pos)
 
+#TODO could rewrite h, g, f to be functions inside student agent class
+
+
+def getAllNeighboringGameStates(chess_board, my_pos, adv_pos):
+    #TODO return list of neighboring game states (extactly 1 hop away) -> moving up, down, left, or right, PLUS putting wall down u,d,l,r for each possible movement -> 4*4=16 total possible neighboring game states
+   
+    neighbors = [] # list of 3 tuples
+    
+    #len(neighbors) will probably be less than 16 because we cant put walls if there are already some there and cant move if a wall or opponent is in the way
+    # TODO implement    
+    assert len(neighbors)<=16, "Max of 16 neighboring game states"
+    return neighbors
+
+
 @register_agent("student_agent")
 class StudentAgent(Agent):
     """
@@ -58,8 +76,8 @@ class StudentAgent(Agent):
             "d": 2,
             "l": 3,
         }
-        self.num_steps_taken = 0#num times step function is called, to determine g(n)
-        self.heuristic_factor = 100
+        self.num_steps_taken = 0 #num times step function is called, to determine g(n)
+        self.heuristic_factor = 100 #to scale range of values returned by h(n)    
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -131,7 +149,7 @@ class StudentAgent(Agent):
 
     
         ---------pseudocode------------
-        need to try hopping numHops=0...max_step inclusive.
+        need to try hopping numHops=0...max_step inclusive. THIS IS BFS -> numHops == depth in BFS graph from start
         for each numHops gather f(n) of each gamestate (adding walls u,d,l,r if possible)
         keep track of lowest f(n), what r and c, and where to put wall u or d or l or r
         
@@ -139,13 +157,41 @@ class StudentAgent(Agent):
         when max_step = 1 -> try numHops =0, follow instruction above. Then try numHops = 1. Hopping 1 time gives us 4 possible options: going up, down, left, or right. For each of these 4 moves, we have 4 options of wall placement (u,d,l,r). So for 1 numHop we have 4*4=16 total options without counting options of 0 numHops
         --------------------------------
         
-
+        
         """
+        print("--------------------------------------------------------")
+        
+        # Perform depth-limited BFS on graph of game state nodes starting at current game state
+        # max depth = max_step (unless there are time/memory requirements to meet)
+        BFS_MAX_DEPTH = max_step 
+        queue = Queue() # put() to enqueue and get() to dequeue
+        queue.put(((chess_board, my_pos, adv_pos), 0)) # enqueue starting (current) game state + starting depth
+        # queue contains tuple: (game state, depth/numHops)
+        # game state is 3 tuple: (chess_board, my_pos, adv_pos)
+        visitedNodes = set()
+        visitedNodes.add((chess_board, my_pos, adv_pos)) # mark starting state as visited
+        while not queue.empty():
+            # removing game state from queue and visiting its neighbours
+            bfs_game_state, bfs_depth = queue.get()
+            bfs_chess_board, bfs_my_pos, bfs_adv_pos = bfs_game_state
+
+
+            #TODO GET F(BFS_GAME_STATE) = g + h AND KEEP TRACK OF LOWEST ONE HERE and game state
+            
+            if bfs_depth < BFS_MAX_DEPTH:
+                for neighbor in getAllNeighboringGameStates(bfs_chess_board, bfs_my_pos, bfs_adv_pos):#all direct neighbours (1 hop away) of the game state
+                    if neighbor not in visitedNodes:
+                        queue.put((neighbor, bfs_depth+1))
+                        visitedNodes.add(neighbor)
+            
+        print("---------------------------------------------------------")
+
+
         
         time_taken = time.time() - start_time
         
         print("Victor's AI's turn took ", time_taken, "seconds.")
-        print(">>>>>>>>>>>>>>>>>>>>>>>>"+str(max_step))
+        #print(">>>>>>>>>>>>>>>>>>>>>>>>"+str(max_step))
         #print(">>>>>>>>>>>>>"+str(chess_board[0,0, self.dir_map["l"]]))
 
         self.num_steps_taken += 1#step function was called, so increment by one
