@@ -24,15 +24,15 @@ game state is a 3-tuple: chess_board, my_pos, adv_pos
 # my_pos and adv_pos to determine where players are on board
 # need to return a low number when game state is good for my player
 # need to return a high number when game state is bad for my player
-# returns a 0 if this game state is a winning game state for this player (game over)
-# returns a 100 if this game state is a losing game state for this player (game over)
-# returns a number between 0 and 100
+# returns a 0% if this game state is a winning game state for this player (game over)
+# returns a 100% if this game state is a losing game state for this player (game over)
+# returns a number between 0% and 100% of the heuristic_factor
 def h(student_agent, chess_board, my_pos, adv_pos):
     my_r, my_c = my_pos
 
     #if chess_board[my_r, my_c, student_agent.dir_map["u"]] and chess_board[my_r, my_c, student_agent.dir_map["u"]]
 
-    return 0#TODO
+    return 0.5*student_agent.heuristic_factor#TODO
 
 
 def g(student_agent):
@@ -58,6 +58,7 @@ class StudentAgent(Agent):
             "l": 3,
         }
         self.num_steps_taken = 0#num times step function is called, to determine g(n)
+        self.heuristic_factor = 100
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
