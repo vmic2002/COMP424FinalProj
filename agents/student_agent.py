@@ -168,7 +168,7 @@ class StudentAgent(Agent):
         queue.put(((chess_board, my_pos, adv_pos), 0)) # enqueue starting (current) game state + starting depth
         # queue contains tuple: (game state, depth/numHops)
         # game state is 3 tuple: (chess_board, my_pos, adv_pos)
-        visitedNodes = set()
+        visitedNodes = set() # to prevent cycles
         visitedNodes.add((chess_board, my_pos, adv_pos)) # mark starting state as visited
         while not queue.empty():
             # removing game state from queue and visiting its neighbours
