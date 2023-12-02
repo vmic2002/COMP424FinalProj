@@ -27,6 +27,7 @@ game state is a 3-tuple: chess_board, my_pos, adv_pos
 # returns a 0% if this game state is a winning game state for this player (game over)
 # returns a 100% if this game state is a losing game state for this player (game over)
 # returns a number between 0% and 100% of the heuristic_factor
+# heuristic_factor is to scale range of values returned by h(n)
 def h(student_agent, chess_board, my_pos, adv_pos):
     my_r, my_c = my_pos
 
