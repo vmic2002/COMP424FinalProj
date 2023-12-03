@@ -44,21 +44,37 @@ def h(student_agent, chess_board, my_pos, adv_pos):
 def g(student_agent):
     return student_agent.num_steps_taken
 
-def f(student_agent, chess_board, my_pos, adv_pos):
+def f(student_agent, chess_board, my_pos, adv_pos, wall_dir):
+    #returns f val IF we add a wall at chess_board[r][c][wall_dir]
+    r, c = my_pos
+    chess_board[r][c][wall_dir] = True
     return g(student_agent) + h(student_agent, chess_board, my_pos, adv_pos)
 
 #TODO could rewrite h, g, f to be functions inside student agent class
 
 
-def getAllNeighboringGameStates(chess_board, my_pos, adv_pos):
-    #TODO return list of neighboring game states (extactly 1 hop away) -> moving up, down, left, or right, PLUS putting wall down u,d,l,r for each possible movement -> 4*4=16 total possible neighboring game states
-   
-    neighbors = [] # list of 3 tuples
+def getAllPossiblePositionsOneHopAway(chess_board, my_pos, adv_pos):
+    # RETURN ALL POSSIBLE MY_POS BY MAKING ONE HOP, DONT CARE ABOUT ADDING WALL, need to be careful not to bump in adversary or wall
+    # need to return list of (r, c) like my_pos, max length 4
+    # code copied from random_agent.py
+    # Moves (Up, Right, Down, Left)
+    moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
     
-    #len(neighbors) will probably be less than 16 because we cant put walls if there are already some there and cant move if a wall or opponent is in the way
-    # TODO implement    
-    assert len(neighbors)<=16, "Max of 16 neighboring game states"
-    return neighbors
+    r, c = my_pos
+ 
+    # Build a list of the moves we can make
+    allowed_dirs = [ d
+      for d in range(0,4)                           # 4 moves possible
+      if not chess_board[r,c,d] and                 # chess_board True means wall
+      not adv_pos == (r+moves[d][0],c+moves[d][1])] # cannot move through Adversary
+    
+    
+    positions = []
+    for d in allowed_dirs:
+        m_r, m_c = moves[d]
+        positions.append((r + m_r, c + m_c))
+    return positions
+
 
 
 @register_agent("student_agent")
@@ -103,11 +119,10 @@ class StudentAgent(Agent):
         # so far when it nears 2 seconds.
         start_time = time.time()
 
-        #TODO 
+         
         #need to try every possible sequence of hops < max_step, while keeping track of lowest f(n)
         
-        #need to call f(self, chess_board, my_pos, adv_pos)
-        #TODO  pick move that has the lowest f(n)
+        #  pick move that has the lowest f(n)
         
 
 
@@ -154,6 +169,8 @@ class StudentAgent(Agent):
         for each numHops gather f(n) of each gamestate (adding walls u,d,l,r if possible)
         keep track of lowest f(n), what r and c, and where to put wall u or d or l or r
         
+        We are traversing the graph as a "simulation" since we arent really performing the moves, we are traversing to find best possible move and pick that node
+
         example: when numHops = 0 -> no hops are done so we have 4 options of where to put wall (u,d,l,r), call f(n) for each of the 4 wall placement and keep track of smallest f(n) 
         when max_step = 1 -> try numHops =0, follow instruction above. Then try numHops = 1. Hopping 1 time gives us 4 possible options: going up, down, left, or right. For each of these 4 moves, we have 4 options of wall placement (u,d,l,r). So for 1 numHop we have 4*4=16 total options without counting options of 0 numHops
         --------------------------------
@@ -166,29 +183,41 @@ class StudentAgent(Agent):
         # max depth = max_step (unless there are time/memory requirements to meet)
         BFS_MAX_DEPTH = max_step 
         queue = Queue() # put() to enqueue and get() to dequeue
-        queue.put(((chess_board, my_pos, adv_pos), 0)) # enqueue starting (current) game state + starting depth
-        # queue contains tuple: (game state, depth/numHops)
-        # game state is 3 tuple: (chess_board, my_pos, adv_pos)
+    
+        # chess_board and adv_pos dont need to be added to queue or visitedNodes since they dont change in this iteration of the step func
+        queue.put((my_pos, 0))# enqueue starting (current) position + starting depth
+
+        # queue contains tuple: (new_pos, depth/numHops)
         visitedNodes = set() # to prevent cycles
+        visitedNodes.add(my_pos) # keeps track of which positions we tried 
+
+        print("Starting position: "+str(my_pos)) 
         
+        best_new_pos = (0,0) #dummy val
+        best_wall_dir = 0 #dummy val
+        best_f = self.heuristic_factor #dummy val
         
-        # need to convert chess_board to tuple since nd array isnt hashable so cant add it to set
-        chess_board_as_tuple = tuple(tuple(row) for row in chess_board.reshape(-1, chess_board.shape[-1]))
-        
-        visitedNodes.add((chess_board_as_tuple, my_pos, adv_pos)) # mark starting state as visited
         while not queue.empty():
-            # removing game state from queue and visiting its neighbours
-            bfs_game_state, bfs_depth = queue.get()
-            bfs_chess_board, bfs_my_pos, bfs_adv_pos = bfs_game_state
+            bfs_pos, bfs_depth = queue.get()
 
-
-            #TODO GET F(BFS_GAME_STATE) = g + h AND KEEP TRACK OF LOWEST ONE HERE and game state
+            # try adding wall at each 4 location when my_pos = bfs_pos and keep track of smallest f(n)
             
+            r, c = bfs_pos
+            for wall_dir in range(4):
+                if not chess_board[r][c][wall_dir]: #cant put wall down if there already is one
+                    x = f(self, chess_board, bfs_pos, adv_pos, wall_dir)
+                    print("F score: "+str(x))
+                    if x<=best_f:
+                        best_f = x
+                        best_wall_dir = wall_dir
+                        best_new_pos = bfs_pos
+            
+            #print("Position "+str(bfs_pos)+" at depth "+str(bfs_depth))
             if bfs_depth < BFS_MAX_DEPTH:
-                for neighbor in getAllNeighboringGameStates(bfs_chess_board, bfs_my_pos, bfs_adv_pos):#all direct neighbours (1 hop away) of the game state
+                for neighbor in getAllPossiblePositionsOneHopAway(chess_board, bfs_pos, adv_pos):
                     if neighbor not in visitedNodes:
                         queue.put((neighbor, bfs_depth+1))
-                        visitedNodes.add(neighbor) #TODO MIGHT HAVE TO CONVERT CHESSBOARD TO TUPLE OF TUPLES LIKE ABOVE
+                        visitedNodes.add(neighbor)
             
         print("---------------------------------------------------------")
 
@@ -201,7 +230,5 @@ class StudentAgent(Agent):
         #print(">>>>>>>>>>>>>"+str(chess_board[0,0, self.dir_map["l"]]))
 
         self.num_steps_taken += 1#step function was called, so increment by one
-        
-
-        # dummy return
-        return my_pos, self.dir_map["u"]
+    
+        return best_new_pos, best_wall_dir
