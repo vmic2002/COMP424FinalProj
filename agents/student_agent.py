@@ -34,8 +34,9 @@ BFS
 # heuristic_factor is to scale range of values returned by h(n)
 def h(student_agent, chess_board, my_pos, adv_pos):
     my_r, my_c = my_pos
-
+    #chess_board True means wall
     #if chess_board[my_r, my_c, student_agent.dir_map["u"]] and chess_board[my_r, my_c, student_agent.dir_map["u"]]
+
 
     return 0.5*student_agent.heuristic_factor#TODO
 
