@@ -169,7 +169,12 @@ class StudentAgent(Agent):
         # queue contains tuple: (game state, depth/numHops)
         # game state is 3 tuple: (chess_board, my_pos, adv_pos)
         visitedNodes = set() # to prevent cycles
-        visitedNodes.add((chess_board, my_pos, adv_pos)) # mark starting state as visited
+        
+        
+        # need to convert chess_board to tuple since nd array isnt hashable so cant add it to set
+        chess_board_as_tuple = tuple(tuple(row) for row in chess_board.reshape(-1, chess_board.shape[-1]))
+        
+        visitedNodes.add((chess_board_as_tuple, my_pos, adv_pos)) # mark starting state as visited
         while not queue.empty():
             # removing game state from queue and visiting its neighbours
             bfs_game_state, bfs_depth = queue.get()
@@ -182,7 +187,7 @@ class StudentAgent(Agent):
                 for neighbor in getAllNeighboringGameStates(bfs_chess_board, bfs_my_pos, bfs_adv_pos):#all direct neighbours (1 hop away) of the game state
                     if neighbor not in visitedNodes:
                         queue.put((neighbor, bfs_depth+1))
-                        visitedNodes.add(neighbor)
+                        visitedNodes.add(neighbor) #TODO MIGHT HAVE TO CONVERT CHESSBOARD TO TUPLE OF TUPLES LIKE ABOVE
             
         print("---------------------------------------------------------")
 
