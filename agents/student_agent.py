@@ -68,15 +68,20 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     distanceBetweenMeAndAdv = abs(new_r-adv_r)+abs(new_c-adv_c)
     
     # Board Control and Division
-    controlled_area = flood_fill(chess_board, new_pos)
-    print("controlled_area: "+str(controlled_area))
+    num_squares_accessible = flood_fill(chess_board, new_pos)
     c3 = -0.5  # Negative weight, as more controlled area is better
 
+
+    # -------IMPORTANT-------------
     #variables used for h should be vars that change within the step function. numWalls and adv_pos dont change
-    #my_pos and where the wall was just added are the only things that will change within the step function
-    # h(my_pos, wall_dir)
+    # new_pos and where the wall was just added (so chess_board and wall_dir) are the only things that will change within the step function
+    # !!!!!!!!!!!!!
+    # h estimates if adding a wall at new_pos in wall_dir is a good idea if we are currently at starting_pos
+    # !!!!!!!!!!!!!!
+    # --->   h(new_pos, wall_dir, chess_board), numWalls, adv_pos... are constants in this function so we can just leave them out
+    # ----------------------------
     
-    return c1*distanceBetweenMeAndAdv + c3*controlled_area
+    return c1*distanceBetweenMeAndAdv + c3*num_squares_accessible
 
 def flood_fill(chess_board, start_pos):
     """
@@ -311,7 +316,7 @@ class StudentAgent(Agent):
         
         
         """
-        print("--------------------------------------------------------")
+        #print("--------------------------------------------------------")
         #print("Max step: "+str(max_step))        
         # Perform depth-limited BFS on graph of game state nodes starting at current game state
         # max depth = max_step (unless there are time/memory requirements to meet)
@@ -355,7 +360,7 @@ class StudentAgent(Agent):
                         queue.put((neighbor, bfs_depth+1))
                         visitedNodes.add(neighbor)
             
-        print("---------------------------------------------------------")
+        #print("---------------------------------------------------------")
 
 
         
