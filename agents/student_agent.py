@@ -5,10 +5,7 @@ import sys
 import numpy as np
 from copy import deepcopy
 import time
-
 from queue import Queue
-
-
 
 """
 We have chosen to implement a heuristic search similar to A* without guarenteeing that h is optimal
@@ -32,11 +29,11 @@ BFS
 # need to return a high number when game state is bad for my player
 # returns a low number if this game state is a winning game state for this player (game over)
 # returns a high number if this game state is a losing game state for this player (game over)
+
 def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     new_r, new_c = new_pos
     adv_r, adv_c = adv_pos
    
-
     #CURRENTLTY AGENT IS AT STARTING_POS
     #THIS H CALL IS TO DECIDE IF MOVING TO NEW_POS AND ADDING A WALL AT WALL_DIR A GOOD DECISION
     #IF IT IS RETURN SMALL NUMBER ELSE BIG NUMBER   TODO
@@ -48,17 +45,81 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     # h = c1 * my_r + c2 * my_c + c3 * otherVariable + ...
     # could maybe use least squares line of best fit method to find the best constants c1, c2 ...
     # no more heuristic_factor -> dont need to scale h, negative values work too (negative means game state is super favored)
-
+     
     c1, c2 = 1, 10
     #c6, c7, c8, c9, c10 = 5, 0, 0, 0 ,0    
     #for now trying linear combination, could potentially try other functions
+    
+    # Distance Between Players
     distanceBetweenMeAndAdv = abs(new_r-adv_r)+abs(new_c-adv_c)
     #print("NUMWALSSSSSSSSSSSSSSSSSSS: "+str(numWalls(chess_board)))
+    
+    # Board Control and Division
+    controlled_area = flood_fill(chess_board, new_pos)
+    c3 = -0.5  # Negative weight, as more controlled area is better
 
     #variables used for h should be vars that change within the step function. numWalls and adv_pos dont change
     #my_pos and where the wall was just added are the only things that will change within the step function
     # h(my_pos, wall_dir)
-    return c1*distanceBetweenMeAndAdv+c2*numWalls(chess_board)
+    
+    return c1*distanceBetweenMeAndAdv + c2*numWalls(chess_board) + c3*controlled_area
+
+def flood_fill(chess_board, start_pos):
+    """
+    Performs a flood-fill algorithm to count the number of accessible squares from a given starting position.
+    
+    Parameters:
+    chess_board (array): A 3D array representing the game board with walls.
+    start_pos (tuple): The starting position (row, column) for the flood-fill.
+    
+    Returns:
+    int: The number of squares accessible from the start_pos.
+    """
+
+    # Determine the size of the chessboard 
+    M = chess_board.shape[0]
+
+    # Initialize a set to track visited squares to avoid re-visiting
+    visited = set()
+
+    # Use a queue to manage the positions to explore next, starting with start_pos
+    queue = [start_pos]
+
+    # Mapping from direction strings to their indices in the chess_board array
+    # This helps in determining the presence of walls in each direction
+    dir_map = {"u": 0, "r": 1, "d": 2, "l": 3}
+
+    # The moves associated with each direction
+    # Used to calculate the coordinates of adjacent squares
+    moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+
+    # Main loop to explore each square in the queue
+    while queue:
+        # Pop the first position from the queue
+        r, c = queue.pop(0)
+
+        # Skip if already visited to prevent redundant checks
+        if (r, c) in visited:
+            continue
+        
+        # Mark the current square as visited
+        visited.add((r, c))
+
+        # Check each direction from the current square
+        for dir_index, (dr, dc) in zip(dir_map.values(), moves):
+            # Calculate the coordinates of the adjacent square
+            nr, nc = r + dr, c + dc
+
+            # Check if the adjacent square is within bounds and accessible
+            # It must not be blocked by a wall and should not be already visited
+            if 0 <= nr < M and 0 <= nc < M and not chess_board[r, c, dir_index] and (nr, nc) not in visited:
+                # If accessible, add it to the queue for further exploration
+                queue.append((nr, nc))
+
+    # Return the number of unique accessible squares found from start_pos
+    return len(visited)
+
+
 
 def numWalls(chess_board):
     #CORRECT! return number of walls on board without counting the walls around the edges of chess_board
