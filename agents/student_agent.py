@@ -34,6 +34,20 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     new_r, new_c = new_pos
     adv_r, adv_c = adv_pos
    
+    # Calculate the game phase 
+    # Example: if more than 50% of the possible moves have been played, consider it late game
+    total_turns_in_match = chess_board.shape[0] * chess_board.shape[1]  
+    turns_played = student_agent.num_steps_taken
+    game_phase = 'late' if turns_played > total_turns_in_match / 2 else 'early'
+
+    # Set weights dynamically based on the game phase
+    if game_phase == 'early':
+        # Early game: prioritize exploration and control
+        c1, c2, c3 = 1, 5, -0.5  
+    else:
+        # Late game: prioritize securing space and trapping the opponent
+        c1, c2, c3 = 1, 10, -1   
+
     #CURRENTLTY AGENT IS AT STARTING_POS
     #THIS H CALL IS TO DECIDE IF MOVING TO NEW_POS AND ADDING A WALL AT WALL_DIR A GOOD DECISION
     #IF IT IS RETURN SMALL NUMBER ELSE BIG NUMBER   TODO
@@ -46,7 +60,7 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     # could maybe use least squares line of best fit method to find the best constants c1, c2 ...
     # no more heuristic_factor -> dont need to scale h, negative values work too (negative means game state is super favored)
      
-    c1, c2 = 1, 10
+    #c1, c2 = 1, 10
     #c6, c7, c8, c9, c10 = 5, 0, 0, 0 ,0    
     #for now trying linear combination, could potentially try other functions
     
