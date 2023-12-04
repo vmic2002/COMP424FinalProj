@@ -17,6 +17,8 @@ we want to minimize f(n) = g(n) + h(n) to find shortest path in graph of game st
 g(n) -> self.num_steps_taken
 h(n) is defined below
 
+TODO ITS POSSIBLE WE ARE DOING GREEDY HEURISTIC ONLY SEARCH SINCE G(N) IS THE SAME THROGUH EVERY ITERATION OF STEP FUNC
+
 game state is a 3-tuple: chess_board, my_pos, adv_pos
 
 BFS
@@ -28,27 +30,81 @@ BFS
 # my_pos and adv_pos to determine where players are on board
 # need to return a low number when game state is good for my player
 # need to return a high number when game state is bad for my player
-# returns a 0% if this game state is a winning game state for this player (game over)
-# returns a 100% if this game state is a losing game state for this player (game over)
-# returns a number between 0% and 100% of the heuristic_factor
-# heuristic_factor is to scale range of values returned by h(n)
-def h(student_agent, chess_board, my_pos, adv_pos):
-    my_r, my_c = my_pos
+# returns a low number if this game state is a winning game state for this player (game over)
+# returns a high number if this game state is a losing game state for this player (game over)
+def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
+    new_r, new_c = new_pos
+    adv_r, adv_c = adv_pos
+   
+
+    #CURRENTLTY AGENT IS AT STARTING_POS
+    #THIS H CALL IS TO DECIDE IF MOVING TO NEW_POS AND ADDING A WALL AT WALL_DIR A GOOD DECISION
+    #IF IT IS RETURN SMALL NUMBER ELSE BIG NUMBER   TODO
+    #chess_board contains this added wall (it is removed at end of f function call) 
+        
     #chess_board True means wall
     #if chess_board[my_r, my_c, student_agent.dir_map["u"]] and chess_board[my_r, my_c, student_agent.dir_map["u"]]
+    
+    # h = c1 * my_r + c2 * my_c + c3 * otherVariable + ...
+    # could maybe use least squares line of best fit method to find the best constants c1, c2 ...
+    # no more heuristic_factor -> dont need to scale h, negative values work too (negative means game state is super favored)
 
+    c1, c2 = 1, 10
+    #c6, c7, c8, c9, c10 = 5, 0, 0, 0 ,0    
+    #for now trying linear combination, could potentially try other functions
+    distanceBetweenMeAndAdv = abs(new_r-adv_r)+abs(new_c-adv_c)
+    #print("NUMWALSSSSSSSSSSSSSSSSSSS: "+str(numWalls(chess_board)))
 
-    return 0.5*student_agent.heuristic_factor#TODO
+    #variables used for h should be vars that change within the step function. numWalls and adv_pos dont change
+    #my_pos and where the wall was just added are the only things that will change within the step function
+    # h(my_pos, wall_dir)
+    return c1*distanceBetweenMeAndAdv+c2*numWalls(chess_board)
+
+def numWalls(chess_board):
+    #CORRECT! return number of walls on board without counting the walls around the edges of chess_board
+    num_walls=0
+    #this approach doesnt really work because there are duplicate counts in the 
+    for r in range(len(chess_board)):
+        for c in range(len(chess_board[r])):
+            for wall_dir in range(len(chess_board[r][c])):
+                if chess_board[r][c][wall_dir]: #chess_board True means wall
+                    num_walls+=1
+    numWallsAroundEdges=2*len(chess_board)+2*len(chess_board[0])#there are walls around edges of board but we dont want to count them
+    #num_walls contains double counted walls (walls not on edges of chess_board)
+    #numWallsAroundEdges arent double counted in num_walls
+    return int((num_walls-numWallsAroundEdges)/2)#all walls are double counted in chess_board, right wall at r,c is counted again as left wall at r, c+1
 
 
 def g(student_agent):
     return student_agent.num_steps_taken
 
-def f(student_agent, chess_board, my_pos, adv_pos, wall_dir):
+def f(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos):
     #returns f val IF we add a wall at chess_board[r][c][wall_dir]
+    # simulate adding wall at r,c, wall_dir and see what f is then remove wall
     r, c = my_pos
+    #walls in middle of chessboard are double counted in chess_board, so need to set two values to True to simulate adding 1 wall
+    #then set same two values back to False to remove that wall
     chess_board[r][c][wall_dir] = True
-    return g(student_agent) + h(student_agent, chess_board, my_pos, adv_pos)
+    if wall_dir == student_agent.dir_map["u"]:
+        chess_board[r-1][c][student_agent.dir_map["d"]] = True
+    elif wall_dir == student_agent.dir_map["d"]:
+        chess_board[r+1][c][student_agent.dir_map["u"]] = True
+    elif wall_dir == student_agent.dir_map["l"]:
+        chess_board[r][c-1][student_agent.dir_map["r"]] = True
+    elif wall_dir == student_agent.dir_map["r"]:
+        chess_board[r][c+1][student_agent.dir_map["l"]] = True
+
+    f_cost = h(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos) # TODO COULD USE G AS WELL+ g(student_agent) 
+    chess_board[r][c][wall_dir] = False #numpy arrays are passed by reference so dont want to actually add wall  
+    if wall_dir == student_agent.dir_map["u"]:
+        chess_board[r-1][c][student_agent.dir_map["d"]] = False
+    elif wall_dir == student_agent.dir_map["d"]:
+        chess_board[r+1][c][student_agent.dir_map["u"]] = False
+    elif wall_dir == student_agent.dir_map["l"]:
+        chess_board[r][c-1][student_agent.dir_map["r"]] = False
+    elif wall_dir == student_agent.dir_map["r"]:
+        chess_board[r][c+1][student_agent.dir_map["l"]] = False
+    return f_cost
 
 #TODO could rewrite h, g, f to be functions inside student agent class
 
@@ -73,6 +129,9 @@ def getAllPossiblePositionsOneHopAway(chess_board, my_pos, adv_pos):
     for d in allowed_dirs:
         m_r, m_c = moves[d]
         positions.append((r + m_r, c + m_c))
+
+    #for p in positions:
+    #    print("PPPPP:  "+str(p))
     return positions
 
 
@@ -94,7 +153,7 @@ class StudentAgent(Agent):
             "l": 3,
         }
         self.num_steps_taken = 0 #num times step function is called, to determine g(n)
-        self.heuristic_factor = 100 #to scale range of values returned by h(n)    
+       # self.heuristic_factor = 100 #to scale range of values returned by h(n)    
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -177,8 +236,8 @@ class StudentAgent(Agent):
         
         
         """
-        print("--------------------------------------------------------")
-        
+        #print("--------------------------------------------------------")
+        #print("Max step: "+str(max_step))        
         # Perform depth-limited BFS on graph of game state nodes starting at current game state
         # max depth = max_step (unless there are time/memory requirements to meet)
         BFS_MAX_DEPTH = max_step 
@@ -191,23 +250,24 @@ class StudentAgent(Agent):
         visitedNodes = set() # to prevent cycles
         visitedNodes.add(my_pos) # keeps track of which positions we tried 
 
-        print("Starting position: "+str(my_pos)) 
+        #print("Starting position: "+str(my_pos)) 
         
         best_new_pos = (0,0) #dummy val
         best_wall_dir = 0 #dummy val
-        best_f = self.heuristic_factor #dummy val
+        best_f = 10000000000 #dummy val
         
         while not queue.empty():
             bfs_pos, bfs_depth = queue.get()
 
             # try adding wall at each 4 location when my_pos = bfs_pos and keep track of smallest f(n)
-            
+             
             r, c = bfs_pos
-            for wall_dir in range(4):
+            for wall_dir in range(0,4):
                 if not chess_board[r][c][wall_dir]: #cant put wall down if there already is one
-                    x = f(self, chess_board, bfs_pos, adv_pos, wall_dir)
-                    print("F score: "+str(x))
+                    x = f(self, chess_board, bfs_pos, adv_pos, wall_dir, my_pos) # x is heursitic IF we place a wall at wall_dir
+                    #print("F score: "+str(x)+" bfs_pos: "+str(bfs_pos)+ " wall_dir: "+str(wall_dir))
                     if x<=best_f:
+                        #print("\tF score smaller than best_f: "+str(x))
                         best_f = x
                         best_wall_dir = wall_dir
                         best_new_pos = bfs_pos
@@ -216,10 +276,11 @@ class StudentAgent(Agent):
             if bfs_depth < BFS_MAX_DEPTH:
                 for neighbor in getAllPossiblePositionsOneHopAway(chess_board, bfs_pos, adv_pos):
                     if neighbor not in visitedNodes:
+                        #print("adding neighbord at depth "+str(bfs_depth+1))
                         queue.put((neighbor, bfs_depth+1))
                         visitedNodes.add(neighbor)
             
-        print("---------------------------------------------------------")
+        #print("---------------------------------------------------------")
 
 
         
