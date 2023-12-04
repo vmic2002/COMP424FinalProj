@@ -29,54 +29,54 @@ BFS
 # need to return a high number when game state is bad for my player
 # returns a low number if this game state is a winning game state for this player (game over)
 # returns a high number if this game state is a losing game state for this player (game over)
+# h = c1 * var1 + c2 * var2 + c3 * var3 + ...
+# could maybe use least squares line of best fit method to find the best scalors c1, c2 ...
 
 def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     new_r, new_c = new_pos
     adv_r, adv_c = adv_pos
    
     # Calculate the game phase 
-    # Example: if more than 50% of the possible moves have been played, consider it late game
-    total_turns_in_match = chess_board.shape[0] * chess_board.shape[1]  
+    # estimate if we are early or late in the game and change heurisitic scalors
+    total_turns_in_match = chess_board.shape[0] * chess_board.shape[1]  #TODO estimate how early/late we are in match using numWalls or student_agent.num_steps_taken
     turns_played = student_agent.num_steps_taken
     game_phase = 'late' if turns_played > total_turns_in_match / 2 else 'early'
-
+    
+    
+    
     # Set weights dynamically based on the game phase
     if game_phase == 'early':
         # Early game: prioritize exploration and control
         c1, c2, c3 = 1, 5, -0.5  
     else:
         # Late game: prioritize securing space and trapping the opponent
-        c1, c2, c3 = 1, 10, -1   
+        c1, c2, c3 = 6, 10, -1   
 
-    #CURRENTLTY AGENT IS AT STARTING_POS
+    #in this func AGENT IS AT STARTING_POS
     #THIS H CALL IS TO DECIDE IF MOVING TO NEW_POS AND ADDING A WALL AT WALL_DIR A GOOD DECISION
-    #IF IT IS RETURN SMALL NUMBER ELSE BIG NUMBER   TODO
+    #IF IT IS RETURN SMALL NUMBER ELSE BIG NUMBEr
     #chess_board contains this added wall (it is removed at end of f function call) 
         
     #chess_board True means wall
     #if chess_board[my_r, my_c, student_agent.dir_map["u"]] and chess_board[my_r, my_c, student_agent.dir_map["u"]]
     
-    # h = c1 * my_r + c2 * my_c + c3 * otherVariable + ...
-    # could maybe use least squares line of best fit method to find the best constants c1, c2 ...
-    # no more heuristic_factor -> dont need to scale h, negative values work too (negative means game state is super favored)
+    
      
-    #c1, c2 = 1, 10
-    #c6, c7, c8, c9, c10 = 5, 0, 0, 0 ,0    
     #for now trying linear combination, could potentially try other functions
     
     # Distance Between Players
     distanceBetweenMeAndAdv = abs(new_r-adv_r)+abs(new_c-adv_c)
-    #print("NUMWALSSSSSSSSSSSSSSSSSSS: "+str(numWalls(chess_board)))
     
     # Board Control and Division
     controlled_area = flood_fill(chess_board, new_pos)
+    print("controlled_area: "+str(controlled_area))
     c3 = -0.5  # Negative weight, as more controlled area is better
 
     #variables used for h should be vars that change within the step function. numWalls and adv_pos dont change
     #my_pos and where the wall was just added are the only things that will change within the step function
     # h(my_pos, wall_dir)
     
-    return c1*distanceBetweenMeAndAdv + c2*numWalls(chess_board) + c3*controlled_area
+    return c1*distanceBetweenMeAndAdv + c3*controlled_area
 
 def flood_fill(chess_board, start_pos):
     """
@@ -311,7 +311,7 @@ class StudentAgent(Agent):
         
         
         """
-        #print("--------------------------------------------------------")
+        print("--------------------------------------------------------")
         #print("Max step: "+str(max_step))        
         # Perform depth-limited BFS on graph of game state nodes starting at current game state
         # max depth = max_step (unless there are time/memory requirements to meet)
@@ -355,13 +355,13 @@ class StudentAgent(Agent):
                         queue.put((neighbor, bfs_depth+1))
                         visitedNodes.add(neighbor)
             
-        #print("---------------------------------------------------------")
+        print("---------------------------------------------------------")
 
 
         
         time_taken = time.time() - start_time
         
-        print("Victor's AI's turn took ", time_taken, "seconds.")
+        #print("Victor's AI's turn took ", time_taken, "seconds.")
         #print(">>>>>>>>>>>>>>>>>>>>>>>>"+str(max_step))
         #print(">>>>>>>>>>>>>"+str(chess_board[0,0, self.dir_map["l"]]))
 
