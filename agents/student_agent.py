@@ -42,15 +42,24 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     turns_played = student_agent.num_steps_taken
     game_phase = 'late' if turns_played > total_turns_in_match / 2 else 'early'
     
+<<<<<<< HEAD
     
     
+=======
+
+    # NOTE: These constants resulted in 100% victory.
+>>>>>>> PrathamBranch
     # Set weights dynamically based on the game phase
     if game_phase == 'early':
         # Early game: prioritize exploration and control
-        c1, c2, c3 = 1, 5, -0.5  
+        c1, c2, c3, c4 = 1, 5, -0.5 ,20
     else:
         # Late game: prioritize securing space and trapping the opponent
+<<<<<<< HEAD
         c1, c2, c3 = 6, 10, -1   
+=======
+        c1, c2, c3,c4 = 1, 10, -1 , 50  
+>>>>>>> PrathamBranch
 
     #in this func AGENT IS AT STARTING_POS
     #THIS H CALL IS TO DECIDE IF MOVING TO NEW_POS AND ADDING A WALL AT WALL_DIR A GOOD DECISION
@@ -60,16 +69,32 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     #chess_board True means wall
     #if chess_board[my_r, my_c, student_agent.dir_map["u"]] and chess_board[my_r, my_c, student_agent.dir_map["u"]]
     
+<<<<<<< HEAD
     
      
+=======
+    # h = c1 * my_r + c2 * my_c + c3 * otherVariable + ...
+    # could maybe use least squares line of best fit method to find the best constants c1, c2 ...
+    # no more heuristic_factor -> dont need to scale h, negative values work too (negative means game state is super favored)
+        
+>>>>>>> PrathamBranch
     #for now trying linear combination, could potentially try other functions
     
     # Distance Between Players
     distanceBetweenMeAndAdv = abs(new_r-adv_r)+abs(new_c-adv_c)
     
     # Board Control and Division
+<<<<<<< HEAD
     num_squares_accessible = flood_fill(chess_board, new_pos)
     c3 = -0.5  # Negative weight, as more controlled area is better
+=======
+    controlled_area = flood_fill(chess_board, new_pos)
+    #c3 = -0.5  # Negative weight, as more controlled area is better
+    
+    # Check if the agent is surrounded by three walls
+    wall_count = sum(chess_board[new_r, new_c])
+    trapped_penalty = c4 * (1 if wall_count >= 3 else 0)
+>>>>>>> PrathamBranch
 
 
     # -------IMPORTANT-------------
@@ -81,7 +106,12 @@ def h(student_agent, chess_board, new_pos, adv_pos, wall_dir, starting_pos):
     # --->   h(new_pos, wall_dir, chess_board), numWalls, adv_pos... are constants in this function so we can just leave them out
     # ----------------------------
     
+<<<<<<< HEAD
     return c1*distanceBetweenMeAndAdv + c3*num_squares_accessible
+=======
+    return c1*distanceBetweenMeAndAdv + c3*controlled_area + c4*trapped_penalty
+    #+ c2*numWalls(chess_board)
+>>>>>>> PrathamBranch
 
 def flood_fill(chess_board, start_pos):
     """
