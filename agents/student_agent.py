@@ -163,32 +163,26 @@ def numWalls(chess_board):
 def g(student_agent):
     return student_agent.num_steps_taken
 
-def f(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos):
-    #returns f val IF we add a wall at chess_board[r][c][wall_dir]
-    # simulate adding wall at r,c, wall_dir and see what f is then remove wall
-    r, c = my_pos
-    #walls in middle of chessboard are double counted in chess_board, so need to set two values to True to simulate adding 1 wall
-    #then set same two values back to False to remove that wall
-    chess_board[r][c][wall_dir] = True
-    if wall_dir == student_agent.dir_map["u"]:
-        chess_board[r-1][c][student_agent.dir_map["d"]] = True
-    elif wall_dir == student_agent.dir_map["d"]:
-        chess_board[r+1][c][student_agent.dir_map["u"]] = True
-    elif wall_dir == student_agent.dir_map["l"]:
-        chess_board[r][c-1][student_agent.dir_map["r"]] = True
-    elif wall_dir == student_agent.dir_map["r"]:
-        chess_board[r][c+1][student_agent.dir_map["l"]] = True
 
-    f_cost = h(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos) # TODO COULD USE G AS WELL+ g(student_agent) 
-    chess_board[r][c][wall_dir] = False #numpy arrays are passed by reference so dont want to actually add wall  
+def setWall(student_agent, chess_board, r, c, wall_dir, is_wall):
+
+    if r == 0 and wall_dir == student_agent.dir_map["u"] or r == len(chess_board) and student_agent.dir_map["d"] or c == 0 and student_agent.dir_map["l"] or c == len(chess_board) and student_agent.dir_map["r"]:
+        return
+    #walls in middle of chessboard are double counted in chess_board, so need to set two values to True/False to simulate adding/removing 1 wall
+    chess_board[r][c][wall_dir] = is_wall
     if wall_dir == student_agent.dir_map["u"]:
-        chess_board[r-1][c][student_agent.dir_map["d"]] = False
+        chess_board[r-1][c][student_agent.dir_map["d"]] = is_wall
     elif wall_dir == student_agent.dir_map["d"]:
-        chess_board[r+1][c][student_agent.dir_map["u"]] = False
+        chess_board[r+1][c][student_agent.dir_map["u"]] = is_wall
     elif wall_dir == student_agent.dir_map["l"]:
-        chess_board[r][c-1][student_agent.dir_map["r"]] = False
+        chess_board[r][c-1][student_agent.dir_map["r"]] = is_wall
     elif wall_dir == student_agent.dir_map["r"]:
-        chess_board[r][c+1][student_agent.dir_map["l"]] = False
+        chess_board[r][c+1][student_agent.dir_map["l"]] = is_wall
+
+
+def f(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos):
+    #returns f val    
+    f_cost = h(student_agent, chess_board, my_pos, adv_pos, wall_dir, starting_pos) # TODO COULD USE G AS WELL+ g(student_agent) 
     return f_cost
 
 #TODO could rewrite h, g, f to be functions inside student agent class
@@ -219,7 +213,83 @@ def getAllPossiblePositionsOneHopAway(chess_board, my_pos, adv_pos):
     #    print("PPPPP:  "+str(p))
     return positions
 
+def simulateMove(student_agent, chess_board, my_pos, adv_pos, BFS_MAX_DEPTH, MY_TURN, NUM_MOVES_LOOK_AHEAD):
+    #doesnt modify pos or chess_board, doenst actually move player or puts wall, only returns best new pos and best wall dir for my pos
+    # OLD COMMENTadd wall in chess_board and walls_added at best_wall_dir, doesnt modify my_pos
+    #RETURUN  best_new_pos, best_wall_dir for my_pos
+    queue = Queue() # put() to enqueue and get() to dequeue
+    
+    # chess_board and adv_pos dont need to be added to queue or visitedNodes since they dont change in this iteration of the step func
+    queue.put((my_pos, 0))# enqueue starting (current) position + starting depth
 
+    # queue contains tuple: (new_pos, depth/numHops)
+    visitedNodes = set() # to prevent cycles
+    visitedNodes.add(my_pos) # keeps track of which positions we tried 
+
+    #print("Starting position: "+str(my_pos)) 
+    
+    best_new_pos = (0,0) #dummy val
+    best_wall_dir = 0 #dummy val
+    best_f = (1000000000 if MY_TURN else -1000000) #dummy val
+    
+    while not queue.empty():
+        bfs_pos, bfs_depth = queue.get()
+
+        # try adding wall at each 4 location when my_pos = bfs_pos and keep track of smallest f(n)
+         
+        r, c = bfs_pos
+        for wall_dir in range(0,4):
+            if not chess_board[r][c][wall_dir]: #cant put wall down if there already is one 
+                setWall(student_agent, chess_board, r, c, wall_dir, True) #simulate putting wall
+                if MY_TURN and NUM_MOVES_LOOK_AHEAD > 0:#if my turn and havent looked too deep ahead then i will simulate what my opponent will do if i make a move to bfs_pos and add wall to walld_dir
+                    best_adv_pos, best_adv_wall_dir = simulateMove(student_agent, chess_board, adv_pos, bfs_pos, BFS_MAX_DEPTH, False, NUM_MOVES_LOOK_AHEAD-1)#changed order of my_pos and adv_pos and set MY_TURN to False to simulate opponent making a move
+                    
+                    setWall(student_agent, chess_board, best_adv_pos[0], best_adv_pos[1], best_adv_wall_dir, True) #simulate putting wall
+                    
+
+                    #TODO missing here
+                    best_sim_my_pos, best_sim_wall_dir = simulateMove(student_agent, chess_board, bfs_pos, best_adv_pos, BFS_MAX_DEPTH, True, NUM_MOVES_LOOK_AHEAD-1)
+                    
+                    setWall(student_agent, chess_board, best_sim_my_pos[0], best_sim_my_pos[1], best_sim_wall_dir, True) #simulate putting wall
+ 
+                    x = f(student_agent, chess_board, best_sim_my_pos, best_adv_pos, best_sim_wall_dir, my_pos)
+                    setWall(student_agent, chess_board, best_sim_my_pos[0], best_sim_my_pos[1], best_sim_wall_dir, False) #simulate remove wall
+                    setWall(student_agent, chess_board, best_adv_pos[0], best_adv_pos[1], best_adv_wall_dir, False) #simulate remove wall
+                    #x = f(student_agent, chess_board, best_sim_my_pos, best_adv_pos, best_sim_wall_dir, my_pos)
+                    if x<=best_f:#we want to minimize f
+                        best_f = x
+                        best_wall_dir = wall_dir
+                        best_new_pos = bfs_pos 
+                elif MY_TURN and NUM_MOVES_LOOK_AHEAD == 0:#if my turn and we are at max depth of search tree, need to gather f val
+                    x = f(student_agent, chess_board, bfs_pos, adv_pos, wall_dir, my_pos)
+                    if x<=best_f:#we want to minimize f
+                        best_f = x
+                        best_wall_dir = wall_dir
+                        best_new_pos = bfs_pos 
+                elif not MY_TURN:#adv making a move, my_pos and adv_pos have been switched
+                    x = f(student_agent, chess_board, adv_pos, bfs_pos, wall_dir, my_pos)
+                    if x>best_f:#adversary (not MY_TURN) picks highest f
+                        #print("\tF score smaller than best_f: "+str(x))
+                        best_f = x
+                        best_wall_dir = wall_dir
+                        best_new_pos = bfs_pos
+                else:
+                    print("ERRRRRRRRRRRRRRRRRRORRRRRRRRRRRRRR")
+                setWall(student_agent, chess_board, r, c, wall_dir, False) #remove wall
+
+        
+        #print("Position "+str(bfs_pos)+" at depth "+str(bfs_depth))
+        if bfs_depth < BFS_MAX_DEPTH:
+            for neighbor in getAllPossiblePositionsOneHopAway(chess_board, bfs_pos, adv_pos):
+                if neighbor not in visitedNodes:
+                    #print("adding neighbord at depth "+str(bfs_depth+1))
+                    queue.put((neighbor, bfs_depth+1))
+                    visitedNodes.add(neighbor)
+        
+    #print("---------------------------------------------------------")
+    #setWall(student_agent, chess_board, best_new_pos[0], best_new_pos[1], best_wall_dir, True) #simulate putting wall
+    #walls_added.add((best_new_pos, best_wall_dir))
+    return best_new_pos, best_wall_dir
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
@@ -322,59 +392,64 @@ class StudentAgent(Agent):
         
         """
         #print("--------------------------------------------------------")
+                    
+
+
+
+
+        #try all possible moves from my_pos + simulate opponent making move that maximizes h
+        #this is like for every possible move if i make this move wwhat is the move that my opponent will make, and what will be the h value of the game state after my move and the opponents move. keep track of smallest of these h and perform that move.
+
+
+
+
+
+        #best_new_pos = (0,0) #dummy val
+        #best_wall_dir = 0 #dummy val
+        #best_f = 10000000000 #dummy val
+        
         #print("Max step: "+str(max_step))        
         # Perform depth-limited BFS on graph of game state nodes starting at current game state
         # max depth = max_step (unless there are time/memory requirements to meet)
-        BFS_MAX_DEPTH = max_step 
-        queue = Queue() # put() to enqueue and get() to dequeue
-    
-        # chess_board and adv_pos dont need to be added to queue or visitedNodes since they dont change in this iteration of the step func
-        queue.put((my_pos, 0))# enqueue starting (current) position + starting depth
-
-        # queue contains tuple: (new_pos, depth/numHops)
-        visitedNodes = set() # to prevent cycles
-        visitedNodes.add(my_pos) # keeps track of which positions we tried 
-
-        #print("Starting position: "+str(my_pos)) 
+        BFS_MAX_DEPTH = max_step
+          
+        # ###########################################################      
+        # implement simulating making best move, then opponent making best move, and repoeat mukltiple times
+        # need to keep track of the added walls and the initial position to revert to the original game state
+        # opponent maximizes heurisitic while we want to minimize it
+        #walls_added = set() # set of (pos, wall_dir)
+        #initial_my_pos = (my_pos[0], my_pos[1]) 
+        #initial_adv_pos = (adv_pos[0], adv_pos[1])
+        #print("initial my pos: "+str(my_pos)+" initial adv_pos: "+str(adv_pos))
+         
+        MY_TURN = True # to simulate my turn or my opponents turn
         
-        best_new_pos = (0,0) #dummy val
-        best_wall_dir = 0 #dummy val
-        best_f = 10000000000 #dummy val
-        
-        while not queue.empty():
-            bfs_pos, bfs_depth = queue.get()
 
-            # try adding wall at each 4 location when my_pos = bfs_pos and keep track of smallest f(n)
-             
-            r, c = bfs_pos
-            for wall_dir in range(0,4):
-                if not chess_board[r][c][wall_dir]: #cant put wall down if there already is one
-                    x = f(self, chess_board, bfs_pos, adv_pos, wall_dir, my_pos) # x is heursitic IF we place a wall at wall_dir
-                    #print("F score: "+str(x)+" bfs_pos: "+str(bfs_pos)+ " wall_dir: "+str(wall_dir))
-                    if x<=best_f:
-                        #print("\tF score smaller than best_f: "+str(x))
-                        best_f = x
-                        best_wall_dir = wall_dir
-                        best_new_pos = bfs_pos
+        NUM_MOVES_LOOK_AHEAD = 1 # cant be too high because graph to traverse is exponential in size
+
+
+        best_new_pos, best_wall_dir = simulateMove(self, chess_board, my_pos, adv_pos, BFS_MAX_DEPTH, MY_TURN, NUM_MOVES_LOOK_AHEAD) #simulates adding wall to chess_board and walls_added, returns best pos and wall dir, doenst modify my_pos
+        #my_pos = (best_new_pos[0], best_new_pos[1]) #simulate making movement
+        
+        
             
-            #print("Position "+str(bfs_pos)+" at depth "+str(bfs_depth))
-            if bfs_depth < BFS_MAX_DEPTH:
-                for neighbor in getAllPossiblePositionsOneHopAway(chess_board, bfs_pos, adv_pos):
-                    if neighbor not in visitedNodes:
-                        #print("adding neighbord at depth "+str(bfs_depth+1))
-                        queue.put((neighbor, bfs_depth+1))
-                        visitedNodes.add(neighbor)
-            
-        #print("---------------------------------------------------------")
-
-
         
-        time_taken = time.time() - start_time
-        
+
         #print("Victor's AI's turn took ", time_taken, "seconds.")
         #print(">>>>>>>>>>>>>>>>>>>>>>>>"+str(max_step))
         #print(">>>>>>>>>>>>>"+str(chess_board[0,0, self.dir_map["l"]]))
 
-        self.num_steps_taken += 1#step function was called, so increment by one
+        #self.num_steps_taken += 1#step function was called, so increment by one
+        
+        #print("best new pos: "+str(best_new_pos))
+        #simulation over, revert back to initial game state and return best move
+        #print("my_pos before restoriung to final state: "+str(my_pos))
+        #my_pos = initial_my_pos
+        #adv_pos = initial_adv_pos
+        #print("my_pos after restoringrto final state: "+str(my_pos))
     
+        #for (pos, wall_dir) in walls_added:
+       #     setWall(self, chess_board, pos[0], pos[1], wall_dir, False)#remove all walls added during simulation
+        time_taken = time.time() - start_time
+        #print("-------------------------------------------------------")
         return best_new_pos, best_wall_dir
