@@ -1,3 +1,5 @@
+Main repo: https://github.com/dmeger/Project-COMP424-2023-Fall
+
 # Colosseum Survival!
 
 Our approach to the problem was to implement a greedy best-first search algorithm. Starting from the initial position, the agent traverses every possible (r,c) using breadth-first search on the board as long as the number of hops to reach there is not greater than the max number of steps. Within the breadth-first search algorithm, once the agent reaches a possible position (r,c), it simulates making a move there and adding a wall in all 4 positions (if possible) and calls a function f = h (which returns a low number if this is a good game state and a high number otherwise). For every possible (r,c) that can be reached (without going over max_step) and wall_dir that is valid, the value f for that possible move is recorded and we keep track of the lowest f and its accompanying new position and wall direction. Once the BFS algorithm terminates (all possible (r,c) within max_step have been reached and all 4 possible placements of walls at those (r,c) have been tried), the new position and wall_dir associated with the lowest f value is returned from the step function, ensuring that the AI agent always picks the move that minimizes f.
@@ -19,7 +21,7 @@ Constant c4 (Trapped Penalty Weight): This weight is applied if the agent is nea
 
 Finally, to determine the “optimal” combination for the constants in h (), we adopted an empirical approach. We isolated each constant (c1, c3, and c4) and ran numerous autoplay sessions of our student_agent against random_agent and observed fluctuations in our win rate. By systematically tweaking these constants, we observed their impact on the agent's performance. This iterative process, involving analyzing outcomes and adjusting the constants, led us to the current configuration that consistently yielded the best results, ensuring a balanced strategy that addresses distance management, area control, and entrapment avoidance.
 
-Main repo: https://github.com/dmeger/Project-COMP424-2023-Fall
+
 
 
 **Project Description & Template** : https://www.overleaf.com/read/vnygbjryrxrt#7b70cb
