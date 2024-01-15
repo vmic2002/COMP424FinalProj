@@ -1,3 +1,5 @@
+The code for Pratham and I's agent is in agents/student_agent.py
+
 Main repo: https://github.com/dmeger/Project-COMP424-2023-Fall
 
 # Colosseum Survival!
