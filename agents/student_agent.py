@@ -8,17 +8,9 @@ import time
 from queue import Queue
 
 """
-We have chosen to implement a heuristic search similar to A* without guarenteeing that h is optimal
-
-we want to minimize f(n) = g(n) + h(n) to find shortest path in graph of game states
-g(n) -> self.num_steps_taken
-h(n) is defined below
-
-TODO ITS POSSIBLE WE ARE DOING GREEDY HEURISTIC ONLY SEARCH SINCE G(N) IS THE SAME THROGUH EVERY ITERATION OF STEP FUNC
-
+We have chosen to implement greedy best-first search
 game state is a 3-tuple: chess_board, my_pos, adv_pos
 
-BFS
 
 """
 
